@@ -12,13 +12,15 @@ type Msg
     = OnAnimationFrame Float
     | OnMouseDown Int Int
     | OnMouseUp
-    | SpawnFlies (List Fly)
+    | SpawnFlies Int (List Fly)
 
 
 type alias Model =
     { frogy : Frogy
     , flies : List Fly
     , dim : ( Int, Int )
+    , maxSpeed : Int
+    , maxPopulation : Int
     , seed : Random.Seed
     }
 
@@ -59,9 +61,11 @@ type alias Flags =
 init : Flags -> ( Model, Cmd Msg )
 init _ =
     ( { frogy = initFrogy
-      , flies = [ Fly 100 100 1 1 ] -- TODO: randomize
+      , flies = initFlies
       , dim = ( 800, 450 )
       , seed = Random.initialSeed 42
+      , maxSpeed = 7
+      , maxPopulation = 10
       }
     , Cmd.none
     )
@@ -69,15 +73,23 @@ init _ =
 
 initFrogy : Frogy
 initFrogy =
-    { x = 650
-    , y = 450
+    { x = 750
+    , y = 400
     , tongue =
-        { x = 650
-        , y = 450
+        { x = 750
+        , y = 650
         , speed = 5
         , status = Retracted
         }
     }
+
+
+initFlies : List Fly
+initFlies =
+    [ Fly 0 100 10 1
+    , Fly 0 200 10 2
+    , Fly 0 300 13 -5
+    ]
 
 
 main : Program Flags Model Msg
@@ -99,7 +111,7 @@ view { frogy, flies, dim } =
     svg
         [ width <| String.fromInt x
         , height <| String.fromInt y
-        , viewBox "0 0 500 500"
+        , viewBox ("0 0 " ++ String.fromInt x ++ " " ++ String.fromInt y)
         , Svg.Attributes.style "background: #efefef"
         ]
         [ viewFlies flies
@@ -172,65 +184,145 @@ update msg model =
 
         OnAnimationFrame timeDelta ->
             let
-                flies =
+                ( updatedFlies, s1 ) =
                     model.flies
-                        |> List.filter (isOutside model.dim)
+                        |> List.filter (isOutside 100 model.dim)
+                        |> instanceNewFlies model
+                        |> (\( flies, seed ) -> updateFlies { model | seed = seed } flies)
 
-                ( updatedFlies, newSeed ) =
-                    updateRandomFlies model.seed model.flies
+                ( hasSpawn, s2 ) =
+                    Random.step (Random.weighted ( 10, True ) [ ( 90, False ) ]) s1
             in
             ( { model
                 | frogy = updateFrogy model.frogy
                 , flies = updatedFlies
+                , seed = s2
+              }
+            , if hasSpawn && List.length updatedFlies <= model.maxPopulation then
+                Random.generate (\n -> SpawnFlies n updatedFlies) (Random.int 1 5)
+
+              else
+                Cmd.none
+            )
+
+        SpawnFlies n flies ->
+            let
+                ( newFlies, newSeed ) =
+                    Random.step (fliesGenerator n model) model.seed
+            in
+            ( { model
+                | flies = flies ++ newFlies
                 , seed = newSeed
               }
             , Cmd.none
             )
 
-        SpawnFlies flies ->
-            ( { model | flies = flies }, Cmd.none )
 
-
-isOutside : ( Int, Int ) -> Fly -> Bool
-isOutside ( sizeX, sizeY ) { x, y } =
-    x < 0 || x > sizeX || y < 0 || y > sizeY
-
-
-updateRandomFly : ( Int, Int ) -> Fly -> Fly
-updateRandomFly ( newXSpeed, newYSpeed ) fly =
-    let
-        { x, y, vertSpeed, horizSpeed } =
-            fly
-    in
-    { fly
-        | x = x + horizSpeed
-        , y = y + vertSpeed
-        , vertSpeed = newYSpeed
-        , horizSpeed = newXSpeed
-    }
-
-
-updateRandomFlies : Random.Seed -> List Fly -> ( List Fly, Random.Seed )
-updateRandomFlies seed flies =
+instanceNewFlies : Model -> List Fly -> ( List Fly, Random.Seed )
+instanceNewFlies model flies =
     case flies of
         [] ->
-            ( [], seed )
+            Random.step (fliesGenerator 3 model) model.seed
+
+        _ ->
+            ( flies, model.seed )
+
+
+fliesGenerator : Int -> Model -> Random.Generator (List Fly)
+fliesGenerator n model =
+    flyGenerator model
+        |> Random.list n
+
+
+flyGenerator : Model -> Random.Generator Fly
+flyGenerator { dim, maxSpeed } =
+    let
+        ( _, sizeY ) =
+            dim
+    in
+    Random.map3
+        (Fly 0)
+        (Random.int 0 sizeY)
+        (Random.int -maxSpeed maxSpeed)
+        (Random.int -maxSpeed maxSpeed)
+
+
+isOutside : Int -> ( Int, Int ) -> Fly -> Bool
+isOutside tol ( sizeX, sizeY ) { x, y } =
+    x > -tol && x < sizeX + tol && y > -tol && y < sizeY + tol
+
+
+updateFlies : Model -> List Fly -> ( List Fly, Random.Seed )
+updateFlies model flies =
+    case flies of
+        [] ->
+            ( [], model.seed )
 
         fly :: rest ->
             let
-                ( newXSpeed, s1 ) =
-                    randomSpeed seed
+                ( newFly, s1 ) =
+                    motionFly model fly
 
-                ( newYSpeed, s2 ) =
-                    randomSpeed s1
-
-                fliesGenerator =
-                    updateRandomFly ( newXSpeed, newYSpeed )
-
-                ( updatedFlies, lastSeed ) =
-                    updateRandomFlies s2 rest
+                ( updatedRest, newSeed ) =
+                    updateFlies { model | seed = s1 } rest
             in
-            ( fliesGenerator fly :: updatedFlies, lastSeed )
+            ( newFly :: updatedRest, newSeed )
+
+
+generatorSpeedFly : Model -> Int -> Random.Generator Int
+generatorSpeedFly { maxSpeed } oldSpeed =
+    Random.weighted ( 80, True ) [ ( 20, False ) ]
+        |> Random.andThen
+            (\hasInertia ->
+                if hasInertia then
+                    Random.constant oldSpeed
+
+                else
+                    Random.int -maxSpeed maxSpeed
+            )
+
+
+motionFly : Model -> Fly -> ( Fly, Random.Seed )
+motionFly model { x, y, vertSpeed, horizSpeed } =
+    let
+        ( frogyX, frogyY ) =
+            ( model.frogy.x, model.frogy.y )
+
+        ( newVertSpeed, s1 ) =
+            Random.step (generatorSpeedFly model vertSpeed) model.seed
+
+        ( newHorizSpeed, s2 ) =
+            Random.step (generatorSpeedFly model horizSpeed) s1
+
+        inertia s =
+            s // 10
+
+        horizInertia =
+            inertia horizSpeed
+
+        vertInertia =
+            inertia vertSpeed
+
+        repultion origin coord =
+            if origin - coord == 0 then
+                0
+
+            else
+                (origin - coord) // 10000
+
+        horizRepulsion =
+            repultion frogyX x
+
+        vertRepulsion =
+            repultion frogyY y
+    in
+    ( { x = x + newHorizSpeed + horizInertia + horizRepulsion
+      , y = y + newVertSpeed + vertInertia + vertRepulsion
+      , vertSpeed = newVertSpeed
+      , horizSpeed = newHorizSpeed
+      }
+    , s2
+    )
 
 
 updateTongueStatus : Frogy -> TongueStatus -> Frogy
@@ -251,18 +343,26 @@ updateFrogy frogy =
         updateTongue =
             case frogy.tongue.status of
                 Moving x y ->
-                    { tongue
-                        | x = x
-                        , y = y
-                    }
+                    if tongue.x == x && tongue.y == y then
+                        { tongue | status = Retracting }
+
+                    else
+                        { tongue
+                            | x = tongue.x - abs (x - tongue.x) // tongue.speed
+                            , y = tongue.y - abs (y - tongue.y) // tongue.speed
+                        }
 
                 Retracting ->
-                    { tongue
-                        | x = frogy.x
-                        , y = frogy.y
-                    }
+                    if tongue.x == frogy.x && tongue.y == frogy.y then
+                        { tongue | status = Retracted }
 
-                _ ->
+                    else
+                        { tongue
+                            | x = tongue.x + abs (frogy.x - tongue.x) // tongue.speed
+                            , y = tongue.y + abs (frogy.y - tongue.y) // tongue.speed
+                        }
+
+                Retracted ->
                     tongue
     in
     { frogy | tongue = updateTongue }
@@ -280,27 +380,6 @@ subscriptions _ =
 keyDecoder : Decode.Decoder ( Int, Int )
 keyDecoder =
     Decode.map2
-        (\x y -> ( x - 140, y + 35 ))
+        (\x y -> ( x, y ))
         (Decode.field "clientX" Decode.int)
         (Decode.field "clientY" Decode.int)
-
-
-
--- fliesGenerator : Int -> ( Int, Int ) -> Random.Generator (List Fly)
--- fliesGenerator n dim =
---     flyGenerator dim
---         |> Random.list n
-
-
-flyGenerator : ( Int, Int ) -> Random.Generator Fly
-flyGenerator ( sizeX, sizeY ) =
-    Random.map3
-        (Fly 0)
-        (Random.int 0 sizeY)
-        (Random.int -10 10)
-        (Random.int -10 10)
-
-
-randomSpeed : Random.Seed -> ( Int, Random.Seed )
-randomSpeed seed =
-    Random.step (Random.int -10 10) seed
