@@ -1,11 +1,23 @@
-module Main exposing (main)
+module Pages.Home_ exposing (Model, Msg, page)
 
-import Browser
 import Browser.Events
+import Html
 import Json.Decode as Decode
+import Page exposing (Page)
 import Random
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import View exposing (View)
+
+
+page : Page Model Msg
+page =
+    Page.element
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
 
 
 type Msg
@@ -22,6 +34,7 @@ type alias Model =
     , maxSpeed : Int
     , maxPopulation : Int
     , seed : Random.Seed
+    , score : Int
     }
 
 
@@ -30,7 +43,14 @@ type alias Fly =
     , y : Int
     , vertSpeed : Int
     , horizSpeed : Int
+    , status : FlyStatus
     }
+
+
+type FlyStatus
+    = Free
+    | Caught
+    | Dead
 
 
 type alias Frogy =
@@ -54,18 +74,15 @@ type TongueStatus
     | Retracted
 
 
-type alias Flags =
-    ()
-
-
-init : Flags -> ( Model, Cmd Msg )
-init _ =
+init : ( Model, Cmd Msg )
+init =
     ( { frogy = initFrogy
       , flies = initFlies
       , dim = ( 800, 450 )
       , seed = Random.initialSeed 42
       , maxSpeed = 7
       , maxPopulation = 10
+      , score = 0
       }
     , Cmd.none
     )
@@ -86,37 +103,39 @@ initFrogy =
 
 initFlies : List Fly
 initFlies =
-    [ Fly 0 100 10 1
-    , Fly 0 200 10 2
-    , Fly 0 300 13 -5
+    [ Fly 0 100 10 1 Free
+    , Fly 0 200 10 2 Free
+    , Fly 0 300 13 -5 Free
     ]
 
 
-main : Program Flags Model Msg
-main =
-    Browser.element
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
-
-
-view : Model -> Svg.Svg Msg
-view { frogy, flies, dim } =
+view : Model -> View Msg
+view { frogy, flies, dim, score } =
     let
-        ( x, y ) =
+        ( x_, y_ ) =
             dim
     in
-    svg
-        [ width <| String.fromInt x
-        , height <| String.fromInt y
-        , viewBox ("0 0 " ++ String.fromInt x ++ " " ++ String.fromInt y)
-        , Svg.Attributes.style "background: #efefef"
+    { title = "The Wizard Frogs"
+    , body =
+        [ Html.div [ class "game" ]
+            [ Html.div [ class "game__score" ] [ Html.pre [] [ text <| "Score: " ++ String.fromInt score ] ]
+            , svg
+                [ width <| String.fromInt x_
+                , height <| String.fromInt y_
+                , Svg.Attributes.style "background: #efefef"
+                ]
+                [ viewFrogy frogy
+                , viewFlies flies
+                ]
+            , Html.div
+                [ class "game__controls" ]
+                [ Html.button [ class "play" ] []
+                , Html.div [ class "progress__bar" ] []
+                , Html.span [ class "timer" ] [ text "0:00" ]
+                ]
+            ]
         ]
-        [ viewFlies flies
-        , viewFrogy frogy
-        ]
+    }
 
 
 viewFlies : List Fly -> Svg.Svg Msg
@@ -125,12 +144,21 @@ viewFlies flies =
 
 
 viewFly : Fly -> Svg.Svg Msg
-viewFly { x, y } =
+viewFly { x, y, status } =
     circle
         [ cx <| String.fromInt x
         , cy <| String.fromInt y
         , r "5"
-        , fill "black"
+        , fill <|
+            case status of
+                Free ->
+                    "black"
+
+                Caught ->
+                    "blue"
+
+                Dead ->
+                    "red"
         ]
         []
 
@@ -184,9 +212,13 @@ update msg model =
 
         OnAnimationFrame timeDelta ->
             let
-                ( updatedFlies, s1 ) =
+                ( updatedFlies, score ) =
                     model.flies
-                        |> List.filter (isOutside 100 model.dim)
+                        |> List.filter (\{ x, y } -> isOutside 100 model.dim ( x, y ))
+                        |> caughtFlies model.frogy
+
+                ( newFlies, s1 ) =
+                    updatedFlies
                         |> instanceNewFlies model
                         |> (\( flies, seed ) -> updateFlies { model | seed = seed } flies)
 
@@ -195,8 +227,9 @@ update msg model =
             in
             ( { model
                 | frogy = updateFrogy model.frogy
-                , flies = updatedFlies
+                , flies = newFlies
                 , seed = s2
+                , score = model.score + score
               }
             , if hasSpawn && List.length updatedFlies <= model.maxPopulation then
                 Random.generate (\n -> SpawnFlies n updatedFlies) (Random.int 1 5)
@@ -216,6 +249,38 @@ update msg model =
               }
             , Cmd.none
             )
+
+
+caughtFlies : Frogy -> List Fly -> ( List Fly, Int )
+caughtFlies frogy flies =
+    let
+        isCaught : Fly -> Frogy -> Bool
+        isCaught { x, y, status } { tongue } =
+            List.all identity
+                [ status == Free
+                , x > tongue.x - 15
+                , x < tongue.x + 15
+                , y > tongue.y - 15
+                , y < tongue.y + 15
+                ]
+
+        caught fly =
+            case ( fly.status, isCaught fly frogy, frogy.tongue.status ) of
+                ( Free, True, Moving _ _ ) ->
+                    { fly | status = Caught }
+
+                ( Caught, True, Retracted ) ->
+                    { fly | status = Dead }
+
+                _ ->
+                    fly
+
+        ( aliveFlies, deadFlies ) =
+            flies
+                |> List.map caught
+                |> List.partition (\{ status } -> status /= Caught)
+    in
+    ( aliveFlies, List.length deadFlies )
 
 
 instanceNewFlies : Model -> List Fly -> ( List Fly, Random.Seed )
@@ -240,15 +305,16 @@ flyGenerator { dim, maxSpeed } =
         ( _, sizeY ) =
             dim
     in
-    Random.map3
+    Random.map4
         (Fly 0)
         (Random.int 0 sizeY)
         (Random.int -maxSpeed maxSpeed)
         (Random.int -maxSpeed maxSpeed)
+        (Random.constant Free)
 
 
-isOutside : Int -> ( Int, Int ) -> Fly -> Bool
-isOutside tol ( sizeX, sizeY ) { x, y } =
+isOutside : Int -> ( Int, Int ) -> ( Int, Int ) -> Bool
+isOutside tol ( sizeX, sizeY ) ( x, y ) =
     x > -tol && x < sizeX + tol && y > -tol && y < sizeY + tol
 
 
@@ -283,46 +349,55 @@ generatorSpeedFly { maxSpeed } oldSpeed =
 
 
 motionFly : Model -> Fly -> ( Fly, Random.Seed )
-motionFly model { x, y, vertSpeed, horizSpeed } =
-    let
-        ( frogyX, frogyY ) =
-            ( model.frogy.x, model.frogy.y )
+motionFly model { x, y, vertSpeed, horizSpeed, status } =
+    case status of
+        Caught ->
+            ( Fly model.frogy.x model.frogy.y vertSpeed horizSpeed Free, model.seed )
 
-        ( newVertSpeed, s1 ) =
-            Random.step (generatorSpeedFly model vertSpeed) model.seed
+        Free ->
+            let
+                ( frogyX, frogyY ) =
+                    ( model.frogy.x, model.frogy.y )
 
-        ( newHorizSpeed, s2 ) =
-            Random.step (generatorSpeedFly model horizSpeed) s1
+                ( newVertSpeed, s1 ) =
+                    Random.step (generatorSpeedFly model vertSpeed) model.seed
 
-        inertia s =
-            s // 10
+                ( newHorizSpeed, s2 ) =
+                    Random.step (generatorSpeedFly model horizSpeed) s1
 
-        horizInertia =
-            inertia horizSpeed
+                inertia s =
+                    s // 10
 
-        vertInertia =
-            inertia vertSpeed
+                horizInertia =
+                    inertia horizSpeed
 
-        repultion origin coord =
-            if origin - coord == 0 then
-                0
+                vertInertia =
+                    inertia vertSpeed
 
-            else
-                (origin - coord) // 10000
+                repultion origin coord =
+                    if origin - coord == 0 then
+                        0
 
-        horizRepulsion =
-            repultion frogyX x
+                    else
+                        (origin - coord) // 10000
 
-        vertRepulsion =
-            repultion frogyY y
-    in
-    ( { x = x + newHorizSpeed + horizInertia + horizRepulsion
-      , y = y + newVertSpeed + vertInertia + vertRepulsion
-      , vertSpeed = newVertSpeed
-      , horizSpeed = newHorizSpeed
-      }
-    , s2
-    )
+                horizRepulsion =
+                    repultion frogyX x
+
+                vertRepulsion =
+                    repultion frogyY y
+            in
+            ( { x = x + newHorizSpeed + horizInertia + horizRepulsion
+              , y = y + newVertSpeed + vertInertia + vertRepulsion
+              , vertSpeed = newVertSpeed
+              , horizSpeed = newHorizSpeed
+              , status = Free
+              }
+            , s2
+            )
+
+        _ ->
+            ( Fly x y vertSpeed horizSpeed status, model.seed )
 
 
 updateTongueStatus : Frogy -> TongueStatus -> Frogy
