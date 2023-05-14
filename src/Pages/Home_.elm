@@ -2,11 +2,14 @@ module Pages.Home_ exposing (Model, Msg, page)
 
 import Browser.Events
 import Html
+import Html.Attributes as Attr
+import Html.Events
 import Json.Decode as Decode
 import Page exposing (Page)
 import Random
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
+import Time
 import View exposing (View)
 
 
@@ -25,6 +28,9 @@ type Msg
     | OnMouseDown Int Int
     | OnMouseUp
     | SpawnFlies Int (List Fly)
+    | OnTick
+    | OnInputNickname String
+    | GameStatusChange GameStatus
 
 
 type alias Model =
@@ -35,6 +41,25 @@ type alias Model =
     , maxPopulation : Int
     , seed : Random.Seed
     , score : Int
+    , timer : Timer
+    , status : GameStatus
+    , gamer : String
+    }
+
+
+type GameStatus
+    = Initializing
+    | Start
+    | Playing
+    | Paused
+    | Finished
+    | Reset
+
+
+type alias Timer =
+    { start : Float
+    , elapsed : Float
+    , stop : Float
     }
 
 
@@ -83,6 +108,13 @@ init =
       , maxSpeed = 7
       , maxPopulation = 10
       , score = 0
+      , timer =
+            { start = 0
+            , elapsed = 0
+            , stop = 60
+            }
+      , status = Initializing
+      , gamer = ""
       }
     , Cmd.none
     )
@@ -110,32 +142,120 @@ initFlies =
 
 
 view : Model -> View Msg
-view { frogy, flies, dim, score } =
+view model =
     let
         ( x_, y_ ) =
-            dim
+            model.dim
     in
     { title = "The Wizard Frogs"
     , body =
         [ Html.div [ class "game" ]
-            [ Html.div [ class "game__score" ] [ Html.pre [] [ text <| "Score: " ++ String.fromInt score ] ]
+            [ viewInializingModal model
+            , viewModalFinished model
+            , Html.div [ class "game__score" ] [ Html.pre [] [ text <| "Score: " ++ String.fromInt model.score ] ]
             , svg
                 [ width <| String.fromInt x_
                 , height <| String.fromInt y_
                 , Svg.Attributes.style "background: #efefef"
                 ]
-                [ viewFrogy frogy
-                , viewFlies flies
+                [ viewFrogy model.frogy
+                , viewFlies model.flies
                 ]
             , Html.div
                 [ class "game__controls" ]
-                [ Html.button [ class "play" ] []
-                , Html.div [ class "progress__bar" ] []
-                , Html.span [ class "timer" ] [ text "0:00" ]
+                [ Html.button
+                    [ class "play"
+                    , Html.Events.onClick (clicker model.status)
+                    ]
+                    []
+                , Html.div [ class "progress__bar" ]
+                    [ Html.div
+                        [ class "progress__bar__fill"
+                        , Attr.style "width" <| String.fromFloat (Basics.min 100 (model.timer.elapsed / model.timer.stop * 100)) ++ "%"
+                        ]
+                        []
+                    ]
+                , Html.span [ class "timer" ]
+                    [ model.timer.elapsed |> formatTimer |> text
+                    ]
                 ]
             ]
         ]
     }
+
+
+viewInializingModal : Model -> Html.Html Msg
+viewInializingModal { status, timer } =
+    Html.div
+        [ class ("modal" ++ " " ++ modalStatus Initializing status) ]
+        [ Html.div
+            [ class "modal__content" ]
+            [ Html.h1 [] [ text "The Wizard Frogs" ]
+            , Html.p [] [ text "You are a wizard frog. You have a magic tongue. You can catch flies with it." ]
+            , Html.p [] [ text ("Catch as many flies as you can in " ++ String.fromFloat timer.stop ++ " seconds.") ]
+            , Html.p [] [ text "Add your Nickname to the Hall of Fame." ]
+            , Html.input
+                [ class "modal__input"
+                , Attr.placeholder "Nickname"
+                , Html.Events.onInput OnInputNickname
+                ]
+                []
+            , Html.p [ class "click__to__start" ] [ text "Click to start the game." ]
+            ]
+        ]
+
+
+viewModalFinished : Model -> Html.Html Msg
+viewModalFinished { status, gamer, score } =
+    let
+        genLink g s =
+            "https://wizard-frogs.netlify.com/?gamer=" ++ g ++ "&score=" ++ String.fromInt s
+
+        gamer_ =
+            if gamer == "" then
+                "Anonymous"
+
+            else
+                gamer
+    in
+    Html.div
+        [ class ("modal" ++ " " ++ modalStatus Finished status) ]
+        [ Html.div
+            [ class "modal__content" ]
+            [ Html.h1 [] [ text "It's over!" ]
+            , Html.p [] [ text <| "Your score is " ++ String.fromInt score ++ "." ]
+            , Html.p [] [ text "Challenge your friends using this link:" ]
+            , Html.p [ class "share__link" ] [ text <| genLink gamer_ score ]
+            ]
+        ]
+
+
+modalStatus : GameStatus -> GameStatus -> String
+modalStatus currentStatus status =
+    if currentStatus == status then
+        "modal__active"
+
+    else
+        "modal__inactive"
+
+
+formatTimer : Float -> String
+formatTimer time =
+    let
+        minutes =
+            floor (time / 60)
+
+        seconds =
+            floor (time - (toFloat minutes * 60))
+
+        fillZero n =
+            if n < 10 then
+                "0" ++ String.fromInt n
+
+            else
+                String.fromInt n
+    in
+    fillZero minutes ++ ":" ++ fillZero seconds
 
 
 viewFlies : List Fly -> Svg.Svg Msg
@@ -204,6 +324,9 @@ viewFrogy frogy =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        OnInputNickname nickname ->
+            ( { model | gamer = nickname }, Cmd.none )
+
         OnMouseDown x y ->
             ( { model | frogy = updateTongueStatus model.frogy (Moving x y) }, Cmd.none )
 
@@ -247,6 +370,50 @@ update msg model =
                 | flies = flies ++ newFlies
                 , seed = newSeed
               }
+            , Cmd.none
+            )
+
+        OnTick ->
+            let
+                timer =
+                    model.timer
+
+                newTimer =
+                    { timer
+                        | elapsed = timer.elapsed + 1
+                    }
+
+                newStatus =
+                    if timer.elapsed >= timer.stop then
+                        Finished
+
+                    else
+                        model.status
+            in
+            ( { model | timer = newTimer, status = newStatus }, Cmd.none )
+
+        GameStatusChange status ->
+            let
+                timer =
+                    model.timer
+
+                newTimer =
+                    case status of
+                        Start ->
+                            { timer | elapsed = 0 }
+
+                        _ ->
+                            model.timer
+            in
+            ( if status == Reset then
+                let
+                    newModel =
+                        Tuple.first init
+                in
+                { newModel | status = Playing }
+
+              else
+                { model | timer = newTimer, status = status }
             , Cmd.none
             )
 
@@ -444,12 +611,17 @@ updateFrogy frogy =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Sub.batch
-        [ Browser.Events.onAnimationFrameDelta OnAnimationFrame
-        , Browser.Events.onMouseDown (Decode.map (\( x, y ) -> OnMouseDown x y) keyDecoder)
-        , Browser.Events.onMouseUp (Decode.succeed OnMouseUp)
-        ]
+subscriptions model =
+    if model.status == Playing then
+        Sub.batch
+            [ Browser.Events.onAnimationFrameDelta OnAnimationFrame
+            , Browser.Events.onMouseDown (Decode.map (\( x, y ) -> OnMouseDown x y) keyDecoder)
+            , Browser.Events.onMouseUp (Decode.succeed OnMouseUp)
+            , Time.every 1000 (\_ -> OnTick)
+            ]
+
+    else
+        Sub.none
 
 
 keyDecoder : Decode.Decoder ( Int, Int )
@@ -458,3 +630,20 @@ keyDecoder =
         (\x y -> ( x, y ))
         (Decode.field "clientX" Decode.int)
         (Decode.field "clientY" Decode.int)
+
+
+clicker : GameStatus -> Msg
+clicker status =
+    let
+        newStatus =
+            case status of
+                Playing ->
+                    Paused
+
+                Finished ->
+                    Reset
+
+                _ ->
+                    Playing
+    in
+    GameStatusChange newStatus

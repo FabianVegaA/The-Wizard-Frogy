@@ -1,8 +1,10 @@
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #eee;
+    background-color: #2f2f2f;
     color: #121212;
-    font-family: 'Roboto';
+    font-family: "Roboto";
+
+    height: 100%;
   }
 
   .game {
@@ -22,14 +24,6 @@
 .game__score {
   font-size: 2rem;
   font-weight: bold;
-
-  @media (min-width: 768px) {
-    font-size: 3rem;
-  }
-
-  @media (min-width: 1024px) {
-    font-size: 4rem;
-  }
 }
 
 .game__controls {
@@ -42,6 +36,7 @@
 .game__controls > .play {
   width: 5rem;
   height: 5rem;
+  border-radius: 0.5rem;
   border-color: transparent;
   background: url(assets/play-button.svg) no-repeat center;
 }
@@ -62,6 +57,12 @@
   border-radius: 0.5rem;
 }
 
+.game__controls > .progress__bar > .progress__bar__fill {
+  background-color: #ebb913;
+  height: 100%;
+  border-radius: 0.5rem;
+}
+
 .game__controls > .timer {
   width: 5rem;
   height: 5rem;
@@ -70,4 +71,87 @@
   font-weight: bold;
 
   margin-top: 1rem;
+  margin: 1rem 0.5rem 0 0;
+}
+
+.modal {
+  position: absolute;
+  z-index: 1000;
+
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  width: 800px;
+  height: 440px;
+  background-color: rgba(238, 238, 226, 0.2);
+
+  color: #121212;
+  font-weight: bold;
+}
+
+.modal > .modal__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.modal > .modal__content > input {
+  width: 50%;
+  height: 3rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #121212;
+  padding: 0.05rem;
+  padding-left: 0.5rem;
+
+  font-size: 1.25rem;
+}
+
+.modal > .modal__content > h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.modal > .modal__content > p {
+  color: #3b3b3b;
+}
+
+.modal > .modal__content > .click__to__start {
+  font-size: 1.5rem;
+  margin-top: 1rem;
+  color: #2f2f2f;
+}
+
+.modal__active {
+  display: flex;
+}
+
+.modal__inactive {
+  display: none;
+}
+
+.share__link {
+  font-size: 1.5rem;
+  background: rgba(79, 79, 73, 0.2);
+  border-radius: 0.5rem;
+  height: 3rem;
+  padding: 0 0.5rem 0 0.5rem;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  user-select: all;
+  cursor: pointer;
+}
+
+.share__link:hover {
+  filter: saturate(4) brightness(1.2) contrast(1.2);
+  color: #eee;
+}
+
+.share__link:active {
+  filter: saturate(8) brightness(1.4) contrast(1.4);
+  color: #eee;
 }
