@@ -237,7 +237,7 @@ viewModalFinished : Model -> Html.Html Msg
 viewModalFinished { status, score, gamer, challenger, challengerScore } =
     let
         genLink g s =
-            "https://wizard-frogs.netlify.com/" ++ g ++ "/" ++ String.fromInt s
+            "https://the-wizard-frogy.netlify.com/" ++ g ++ "/" ++ String.fromInt s
 
         gamer_ =
             if gamer == "" then
