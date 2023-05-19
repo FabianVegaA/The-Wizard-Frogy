@@ -203,7 +203,7 @@ view model =
                 [ class "game__controls" ]
                 [ Html.button
                     [ class "play"
-                    , Html.Events.onClick (clicker model.status)
+                    , Html.Events.onClick (clicker model)
                     ]
                     []
                 , Html.div [ class "progress__bar" ]
@@ -249,13 +249,6 @@ viewModalFinished { status, score, gamer, challenger, challengerScore } =
         genLink g s =
             "https://the-wizard-frogy.netlify.com/" ++ g ++ "/" ++ String.fromInt s
 
-        gamer_ =
-            if gamer == "" then
-                "Anonymous"
-
-            else
-                gamer
-
         ( winnerMsg, classModal ) =
             case challenger of
                 Just challenger_ ->
@@ -278,7 +271,7 @@ viewModalFinished { status, score, gamer, challenger, challengerScore } =
             [ Html.h1 [] [ text "It's over!" ]
             , Html.p [ class (classModal ++ " " ++ "game_result") ] [ text winnerMsg ]
             , Html.p [] [ text "Challenge your friends using this link:" ]
-            , Html.p [ class "share__link" ] [ text <| genLink gamer_ score ]
+            , Html.p [ class "share__link" ] [ text <| genLink gamer score ]
             ]
         ]
 
@@ -712,8 +705,8 @@ keyDecoder =
     Decode.map2 Tuple.pair clientX clientY
 
 
-clicker : GameStatus -> Msg
-clicker status =
+clicker : Model -> Msg
+clicker { status, gamer } =
     let
         newStatus =
             case status of
@@ -722,6 +715,13 @@ clicker status =
 
                 Finished ->
                     Reset
+
+                Initializing ->
+                    if gamer == "" then
+                        Initializing
+
+                    else
+                        Playing
 
                 _ ->
                     Playing
