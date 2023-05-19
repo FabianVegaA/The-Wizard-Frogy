@@ -14,14 +14,23 @@
 }
 
 .game {
+  user-select: none;
+
+  width: 900px;
+}
+
+.game__board {
+  margin: 5px auto 0 50px;
+}
+
+.game__score {
+  height: 50px;
+
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  user-select: none;
-}
 
-.game__score {
   font-size: 2rem;
   font-weight: bold;
 }
@@ -30,7 +39,7 @@
   display: flex;
   flex-direction: row;
   align-self: stretch;
-  margin-top: 1rem;
+  margin: 1rem 50px 0 50px;
 }
 
 .game__controls > .play {
@@ -81,6 +90,8 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+
+  margin: 65px auto 0 50px;
 
   width: 800px;
   height: 440px;
