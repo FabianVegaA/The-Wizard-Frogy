@@ -45,7 +45,7 @@ type Msg
 type alias Model =
     { frogy : Frogy
     , flies : List Fly
-    , dim : ( Int, Int )
+    , board : Board
     , maxSpeed : Int
     , maxPopulation : Int
     , seed : Random.Seed
@@ -55,6 +55,14 @@ type alias Model =
     , gamer : String
     , challenger : Maybe String
     , challengerScore : Maybe Int
+    }
+
+
+type alias Board =
+    { width : Int
+    , height : Int
+    , left : Int
+    , top : Int
     }
 
 
@@ -129,7 +137,7 @@ init params =
     in
     ( { frogy = initFrogy
       , flies = initFlies
-      , dim = ( 800, 450 )
+      , board = { width = 800, height = 450, left = 55, top = 65 }
       , seed = Random.initialSeed 42
       , maxSpeed = 7
       , maxPopulation = 10
@@ -163,18 +171,18 @@ initFrogy =
 
 initFlies : List Fly
 initFlies =
-    [ Fly 0 100 10 1 Free
-    , Fly 0 200 10 2 Free
-    , Fly 0 300 13 -5 Free
+    let
+        initFly x y sx sy =
+            Fly x y sx sy Free
+    in
+    [ initFly 0 100 10 1
+    , initFly 0 200 10 2
+    , initFly 0 300 13 -5
     ]
 
 
 view : Model -> View Msg
 view model =
-    let
-        ( x_, y_ ) =
-            model.dim
-    in
     { title = "The Wizard Frogs"
     , body =
         [ Html.div [ class "game" ]
@@ -182,9 +190,10 @@ view model =
             , viewModalFinished model
             , Html.div [ class "game__score" ] [ Html.pre [] [ text <| "Score: " ++ String.fromInt model.score ] ]
             , svg
-                [ width <| String.fromInt x_
-                , height <| String.fromInt y_
+                [ width <| String.fromInt model.board.width
+                , height <| String.fromInt model.board.height
                 , Svg.Attributes.style "background: #efefef"
+                , class "game__board"
                 ]
                 [ viewFrogy model.frogy
                 , viewFlies model.flies
@@ -371,7 +380,11 @@ update msg model =
             ( { model | gamer = nickname }, Cmd.none )
 
         OnMouseDown x y ->
-            ( { model | frogy = updateTongueStatus model.frogy (Moving x y) }, Cmd.none )
+            if x < 0 || x > model.board.width || y < 0 || y > model.board.height then
+                ( model, Cmd.none )
+
+            else
+                ( { model | frogy = updateTongueStatus model.frogy (Moving x y) }, Cmd.none )
 
         OnMouseUp ->
             ( { model | frogy = updateTongueStatus model.frogy Retracting }, Cmd.none )
@@ -380,7 +393,7 @@ update msg model =
             let
                 ( updatedFlies, score ) =
                     model.flies
-                        |> List.filter (\{ x, y } -> isOutside 100 model.dim ( x, y ))
+                        |> List.filter (\{ x, y } -> isOutside 100 model.board ( x, y ))
                         |> caughtFlies model.frogy
 
                 ( newFlies, s1 ) =
@@ -392,7 +405,7 @@ update msg model =
                     Random.step (Random.weighted ( 10, True ) [ ( 90, False ) ]) s1
             in
             ( { model
-                | frogy = updateFrogy model.frogy
+                | frogy = updateFrogy model
                 , flies = newFlies
                 , seed = s2
                 , score = model.score + score
@@ -524,22 +537,18 @@ fliesGenerator n model =
 
 
 flyGenerator : Model -> Random.Generator Fly
-flyGenerator { dim, maxSpeed } =
-    let
-        ( _, sizeY ) =
-            dim
-    in
+flyGenerator { board, maxSpeed } =
     Random.map4
         (Fly 0)
-        (Random.int 0 sizeY)
+        (Random.int 0 board.height)
         (Random.int -maxSpeed maxSpeed)
         (Random.int -maxSpeed maxSpeed)
         (Random.constant Free)
 
 
-isOutside : Int -> ( Int, Int ) -> ( Int, Int ) -> Bool
-isOutside tol ( sizeX, sizeY ) ( x, y ) =
-    x > -tol && x < sizeX + tol && y > -tol && y < sizeY + tol
+isOutside : Int -> Board -> ( Int, Int ) -> Bool
+isOutside tol { width, height } ( x, y ) =
+    x > -tol && x < width + tol && y > -tol && y < height + tol
 
 
 updateFlies : Model -> List Fly -> ( List Fly, Random.Seed )
@@ -633,8 +642,8 @@ updateTongueStatus frogy status =
     { frogy | tongue = { tongue | status = status } }
 
 
-updateFrogy : Frogy -> Frogy
-updateFrogy frogy =
+updateFrogy : Model -> Frogy
+updateFrogy { frogy, board } =
     let
         tongue =
             frogy.tongue
@@ -642,13 +651,23 @@ updateFrogy frogy =
         updateTongue =
             case frogy.tongue.status of
                 Moving x y ->
+                    let
+                        ( maxX, maxY ) =
+                            ( board.width - 10, board.height - 10 )
+
+                        movX =
+                            tongue.x + (x - tongue.x) // tongue.speed
+
+                        movY =
+                            tongue.y + (y - tongue.y) // tongue.speed
+                    in
                     if tongue.x == x && tongue.y == y then
                         { tongue | status = Retracting }
 
                     else
                         { tongue
-                            | x = tongue.x - abs (x - tongue.x) // tongue.speed
-                            , y = tongue.y - abs (y - tongue.y) // tongue.speed
+                            | x = movX |> Basics.max 0 |> Basics.min maxX
+                            , y = movY |> Basics.max 0 |> Basics.min maxY
                         }
 
                 Retracting ->
@@ -668,11 +687,11 @@ updateFrogy frogy =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
-    if model.status == Playing then
+subscriptions { status, board } =
+    if status == Playing then
         Sub.batch
             [ Browser.Events.onAnimationFrameDelta OnAnimationFrame
-            , Browser.Events.onMouseDown (Decode.map (\( x, y ) -> OnMouseDown x y) keyDecoder)
+            , Browser.Events.onMouseDown (Decode.map (\( x, y ) -> OnMouseDown (x - board.left) (y - board.top)) keyDecoder)
             , Browser.Events.onMouseUp (Decode.succeed OnMouseUp)
             , Time.every 1000 (\_ -> OnTick)
             ]
@@ -683,10 +702,14 @@ subscriptions model =
 
 keyDecoder : Decode.Decoder ( Int, Int )
 keyDecoder =
-    Decode.map2
-        (\x y -> ( x, y ))
-        (Decode.field "clientX" Decode.int)
-        (Decode.field "clientY" Decode.int)
+    let
+        clientX =
+            Decode.field "clientX" Decode.int
+
+        clientY =
+            Decode.field "clientY" Decode.int
+    in
+    Decode.map2 Tuple.pair clientX clientY
 
 
 clicker : GameStatus -> Msg
