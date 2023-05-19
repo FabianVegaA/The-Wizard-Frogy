@@ -1,8 +1,6 @@
-module Pages.Home_ exposing (Model, Msg, page)
+module Pages.Home_ exposing (Model, Msg, page, view)
 
-import Html exposing (Html, button, h1, p, a, text)
-import Html.Attributes exposing (class, href)
-import Html.Events exposing (onClick)
+import Browser.Navigation exposing (load)
 import Page exposing (Page)
 import View exposing (View)
 
@@ -18,56 +16,34 @@ page =
 
 
 type alias Model =
-    { repository : String
-    }
+    ()
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { repository = "https://github.com/FabianVegaA/The-Wizard-Frogy"
-      }
+    ( ()
     , Cmd.none
     )
 
 
-
--- UPDATE
-
-
-type Msg
-    = GoToGame
+type alias Msg =
+    ()
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update _ model =
     ( model
-    , Cmd.none
+    , load "https://the-wizard-frogy.netlify.app/frogy"
     )
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
 view : Model -> View Msg
-view model =
-    { title = "Pages.Home_"
-    , body = viewHome model
+view _ =
+    { title = "The Wizard Frogy"
+    , body = []
     }
-
-
-viewHome : Model -> List (Html Msg)
-viewHome { repository } =
-    [ h1 [] [ text "Welcome to \"The Wizard Frogy\"!" ]
-    , p [] [ text "This is a game made with Elm. It's a work in progress." ]
-    , p []
-        [ text "You can find the source code on "
-        , a [ class "link", href repository ] [ text "GitHub" ]
-        , text ". You can also contribute to the game by making a pull request or giving feedback in the issues section."
-        ]
-    , p [] [ text "Have fun! Press the button to start." ]
-    , button [
-        onClick GoToGame
-    ] [ text "Start" ]
-    ]
