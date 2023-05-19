@@ -33,7 +33,7 @@ type alias Msg =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update _ model =
     ( model
-    , load "https://the-wizard-frogy.netlify.app/frogy"
+    , load "#/frogy"
     )
 
 
