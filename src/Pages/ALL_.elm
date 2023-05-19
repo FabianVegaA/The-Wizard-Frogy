@@ -218,8 +218,44 @@ view model =
                     ]
                 ]
             ]
+        , viewFooter model
         ]
     }
+
+
+viewFooter : Model -> Html.Html Msg
+viewFooter _ =
+    Html.footer
+        [ class "footer" ]
+        [ Html.div
+            [ class "row footer__media" ]
+            [ Html.a
+                [ Attr.href "https://www.linkedin.com/in/fabian-vega-alcota/"
+                , class "footer__media__link"
+                ]
+                [ Html.i [ class "fa fa-linkedin" ] [] ]
+            , Html.a
+                [ Attr.href "https://twitter.com/fabianmativeal"
+                , class "footer__media__link"
+                ]
+                [ Html.i [ class "fa fa-twitter" ] [] ]
+            , Html.a
+                [ Attr.href "https://github.com/FabianVegaA"
+                , class "footer__media__link"
+                ]
+                [ Html.i [ class "fa fa-github" ] [] ]
+            ]
+        , Html.div
+            [ class "row footer__open__source" ]
+            [ Html.span [] [ text "The source code is available on " ]
+            , Html.a
+                [ Attr.href "https://github.com/FabianVegaA/The-Wizard-Frogy"
+                , class "footer__open__source__link"
+                ]
+                [ text "Repository" ]
+            , Html.span [] [ text "." ]
+            ]
+        ]
 
 
 viewInializingModal : Model -> Html.Html Msg
