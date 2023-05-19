@@ -17,6 +17,14 @@
         {
           "name": "viewport",
           "content": "width=device-width, initial-scale=1.0"
+        },
+        {
+          "property": "og:title",
+          "content": "The Wizard Frogy"
+        },
+        {
+          "property": "og:description",
+          "content": "The Wizard Frogy is a game where you have to help Frogy to catch the flies."
         }
       ],
       "link": [
