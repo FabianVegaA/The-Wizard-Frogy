@@ -35,7 +35,6 @@ page { first_, rest_ } =
 type Msg
     = OnAnimationFrame Float
     | OnMouseDown Int Int
-    | OnMouseUp
     | SpawnFlies Int (List Fly)
     | OnTick
     | OnInputNickname String
@@ -108,6 +107,7 @@ type alias Tongue =
     { x : Int
     , y : Int
     , speed : Int
+    , tol : Int
     , status : TongueStatus
     }
 
@@ -164,6 +164,7 @@ initFrogy =
         { x = 750
         , y = 650
         , speed = 5
+        , tol = 10
         , status = Retracted
         }
     }
@@ -385,9 +386,6 @@ update msg model =
 
             else
                 ( { model | frogy = updateTongueStatus model.frogy (Moving x y) }, Cmd.none )
-
-        OnMouseUp ->
-            ( { model | frogy = updateTongueStatus model.frogy Retracting }, Cmd.none )
 
         OnAnimationFrame timeDelta ->
             let
@@ -660,8 +658,11 @@ updateFrogy { frogy, board } =
 
                         movY =
                             tongue.y + (y - tongue.y) // tongue.speed
+
+                        hasArrived tol =
+                            tongue.x - x < tol && tongue.y - y < tol
                     in
-                    if tongue.x == x && tongue.y == y then
+                    if hasArrived 10 then
                         { tongue | status = Retracting }
 
                     else
@@ -691,8 +692,7 @@ subscriptions { status, board } =
     if status == Playing then
         Sub.batch
             [ Browser.Events.onAnimationFrameDelta OnAnimationFrame
-            , Browser.Events.onMouseDown (Decode.map (\( x, y ) -> OnMouseDown (x - board.left) (y - board.top)) keyDecoder)
-            , Browser.Events.onMouseUp (Decode.succeed OnMouseUp)
+            , Browser.Events.onClick (Decode.map (\( x, y ) -> OnMouseDown (x - board.left) (y - board.top)) keyDecoder)
             , Time.every 1000 (\_ -> OnTick)
             ]
 
