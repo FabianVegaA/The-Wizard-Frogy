@@ -5,4 +5,4 @@ A game made with Elm about a wizard frog 🐸
 
 ## How to play
 
-You can play the game [here](https://the-wizard-frogy.netlify.app/).
+You can play the game [here](https://the-wizard-frogy.netlify.app/frogy).
