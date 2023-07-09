@@ -1,11 +1,10 @@
-module Pages.ALL_ exposing (Model, Msg, page)
+module Game exposing (Model, Msg, game)
 
 import Browser.Events
 import Html
 import Html.Attributes as Attr
 import Html.Events
 import Json.Decode as Decode
-import Page exposing (Page)
 import Random
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
@@ -13,32 +12,12 @@ import Time
 import View exposing (View)
 
 
-page : { first_ : String, rest_ : List String } -> Page Model Msg
-page { first_, rest_ } =
-    let
-        params =
-            case ( first_, rest_ ) of
-                ( gamer, score :: [] ) ->
-                    Just { gamer = gamer, score = String.toInt score |> Maybe.withDefault 0 }
-
-                _ ->
-                    Nothing
-    in
-    Page.element
-        { init = init params
-        , update = update
-        , subscriptions = subscriptions
-        , view = view
-        }
-
-
-type Msg
-    = OnAnimationFrame Float
-    | OnMouseDown Int Int
-    | SpawnFlies Int (List Fly)
-    | OnTick
-    | OnInputNickname String
-    | GameStatusChange GameStatus
+type alias GameElement a msg =
+    { init : ( a, Cmd msg )
+    , update : msg -> a -> ( a, Cmd msg )
+    , subscriptions : a -> Sub msg
+    , view : a -> View msg
+    }
 
 
 type alias Model =
@@ -55,6 +34,15 @@ type alias Model =
     , challenger : Maybe String
     , challengerScore : Maybe Int
     }
+
+
+type Msg
+    = OnAnimationFrame Float
+    | OnMouseDown Int Int
+    | SpawnFlies Int (List Fly)
+    | OnTick
+    | OnInputNickname String
+    | GameStatusChange GameStatus
 
 
 type alias Board =
@@ -118,20 +106,29 @@ type TongueStatus
     | Retracted
 
 
-type alias Params =
-    { gamer : String
-    , score : Int
+type alias ChallengerParam =
+    { challenger : String
     }
 
 
-init : Maybe Params -> ( Model, Cmd Msg )
+game : Maybe ChallengerParam -> GameElement Model Msg
+game params =
+    { init = init params
+    , view = view
+    , update = update
+    , subscriptions = subscriptions
+    }
+
+
+init : Maybe ChallengerParam -> ( Model, Cmd Msg )
 init params =
     let
-        ( challenger, challengerScore ) =
+        ( challengerName, challengerScore ) =
             case params of
-                Just { gamer, score } ->
-                    ( Just gamer, Just score )
+                Just { challenger } ->
+                    ( Just challenger, Nothing )
 
+                -- FIXME: decode challenger score
                 Nothing ->
                     ( Nothing, Nothing )
     in
@@ -149,7 +146,7 @@ init params =
             }
       , status = Initializing
       , gamer = ""
-      , challenger = challenger
+      , challenger = challengerName
       , challengerScore = challengerScore
       }
     , Cmd.none
@@ -187,34 +184,46 @@ view model =
     { title = "The Wizard Frogs"
     , body =
         [ Html.div [ class "game" ]
-            [ viewInializingModal model
-            , viewModalFinished model
-            , Html.div [ class "game__score" ] [ Html.pre [] [ text <| "Score: " ++ String.fromInt model.score ] ]
-            , svg
-                [ width <| String.fromInt model.board.width
-                , height <| String.fromInt model.board.height
-                , Svg.Attributes.style "background: #efefef"
-                , class "game__board"
-                ]
-                [ viewFrogy model.frogy
-                , viewFlies model.flies
-                ]
+            [ viewBackground
             , Html.div
-                [ class "game__controls" ]
-                [ Html.button
-                    [ class "play"
-                    , Html.Events.onClick (clicker model)
+                []
+                [ viewInializingModal model
+                , viewModalFinished model
+                , Html.div [ class "game__score" ] [ Html.pre [] [ text <| "Score: " ++ String.fromInt model.score ] ]
+                , svg
+                    [ width <| String.fromInt model.board.width
+                    , height <| String.fromInt model.board.height
+                    , class "game__board"
                     ]
-                    []
-                , Html.div [ class "progress__bar" ]
-                    [ Html.div
-                        [ class "progress__bar__fill"
-                        , Attr.style "width" <| String.fromFloat (Basics.min 100 (model.timer.elapsed / model.timer.stop * 100)) ++ "%"
+                    [ Svg.defs []
+                        [ Svg.filter [ id "blur" ]
+                            [ Svg.feGaussianBlur [ stdDeviation "0.4" ] [] ]
+                        ]
+                    , viewFrogy model.frogy
+                    , case model.status of
+                        Initializing ->
+                            Html.div [] []
+
+                        _ ->
+                            viewFlies model.flies
+                    ]
+                , Html.div
+                    [ class "game__controls" ]
+                    [ Html.button
+                        [ class "play_button"
+                        , Html.Events.onClick (clicker model)
                         ]
                         []
-                    ]
-                , Html.span [ class "timer" ]
-                    [ model.timer.elapsed |> formatTimer |> text
+                    , Html.div [ class "progress__bar" ]
+                        [ Html.div
+                            [ class "progress__bar__fill"
+                            , Attr.style "width" <| String.fromFloat (Basics.min 100 (model.timer.elapsed / model.timer.stop * 100)) ++ "%"
+                            ]
+                            []
+                        ]
+                    , Html.span [ class "timer" ]
+                        [ model.timer.elapsed |> formatTimer |> text
+                        ]
                     ]
                 ]
             ]
@@ -223,12 +232,47 @@ view model =
     }
 
 
+viewBackground : Html.Html Msg
+viewBackground =
+    Html.div
+        [ class "game__board__background"
+        ]
+        [ viewRain
+        , viewRain
+        , viewRain
+        , viewRain
+        , viewRain
+        ]
+
+
+viewRain : Html.Html Msg
+viewRain =
+    Html.div [ class "rain" ]
+        [ Html.div [ class "drop" ] []
+        , Html.div [ class "waves" ]
+            [ Html.div [] []
+            , Html.div [] []
+            , Html.div [] []
+            ]
+        , Html.div [ class "splash" ] []
+        , Html.div [ class "particles" ]
+            [ Html.div [] []
+            , Html.div [] []
+            , Html.div [] []
+            , Html.div [] []
+            , Html.div [] []
+            , Html.div [] []
+            , Html.div [] []
+            ]
+        ]
+
+
 viewFooter : Model -> Html.Html Msg
 viewFooter _ =
     Html.footer
-        [ class "footer" ]
+        [ class "_footer w-100" ]
         [ Html.div
-            [ class "row footer__media" ]
+            [ class "footer__media" ]
             [ Html.a
                 [ Attr.href "https://www.linkedin.com/in/fabian-vega-alcota/"
                 , class "footer__media__link"
@@ -246,7 +290,7 @@ viewFooter _ =
                 [ Html.i [ class "fa fa-github" ] [] ]
             ]
         , Html.div
-            [ class "row footer__open__source" ]
+            [ class "footer__open__source" ]
             [ Html.span [] [ text "The source code is available on " ]
             , Html.a
                 [ Attr.href "https://github.com/FabianVegaA/The-Wizard-Frogy"
@@ -261,12 +305,12 @@ viewFooter _ =
 viewInializingModal : Model -> Html.Html Msg
 viewInializingModal { status, timer } =
     Html.div
-        [ class ("modal" ++ " " ++ modalStatus Initializing status) ]
+        [ class ("_modal" ++ " " ++ modalStatus Initializing status) ]
         [ Html.div
             [ class "modal__content" ]
             [ Html.h1 [] [ text "The Wizard Frogs" ]
             , Html.p [] [ text "You are a wizard frog. You have a magic tongue. You can catch flies with it." ]
-            , Html.p [] [ text ("Catch as many flies as you can in " ++ String.fromFloat timer.stop ++ " seconds.") ]
+            , Html.p [] [ text ("Catch as many stars as you can in " ++ String.fromFloat timer.stop ++ " seconds.") ]
             , Html.p [] [ text "Add your Nickname to the Hall of Fame." ]
             , Html.input
                 [ class "modal__input"
@@ -301,7 +345,7 @@ viewModalFinished { status, score, gamer, challenger, challengerScore } =
                     ( "", "" )
     in
     Html.div
-        [ class ("modal" ++ " " ++ modalStatus Finished status) ]
+        [ class ("_modal" ++ " " ++ modalStatus Finished status) ]
         [ Html.div
             [ class "modal__content" ]
             [ Html.h1 [] [ text "It's over!" ]
@@ -347,22 +391,16 @@ viewFlies flies =
 
 viewFly : Fly -> Svg.Svg Msg
 viewFly { x, y, status } =
-    circle
-        [ cx <| String.fromInt x
-        , cy <| String.fromInt y
-        , r "5"
-        , fill <|
-            case status of
-                Free ->
-                    "black"
-
-                Caught ->
-                    "blue"
-
-                Dead ->
-                    "red"
+    Svg.text_
+        [ Svg.Attributes.x <| String.fromInt x
+        , Svg.Attributes.y <| String.fromInt y
+        , Svg.Attributes.fontSize "30"
+        , Svg.Attributes.rotate "30"
+        , Svg.Attributes.fill "#b7dade"
+        , Svg.Attributes.filter "url(#blur)"
+        , id "fly"
         ]
-        []
+        [ text "★" ]
 
 
 viewFrogy : Frogy -> Svg.Svg Msg
@@ -502,15 +540,12 @@ update msg model =
 
 
 reset : Model -> Model
-reset { challenger, challengerScore } =
+reset _ =
     let
         params =
-            case ( challenger, challengerScore ) of
-                ( Just name, Just score ) ->
-                    Just { gamer = name, score = score }
+            Nothing
 
-                _ ->
-                    Nothing
+        -- FIXME: get params from url
     in
     init params |> Tuple.first
 
