@@ -5,6 +5,8 @@ import Html
 import Html.Attributes as Attr
 import Html.Events
 import Json.Decode as Decode
+import Lib.Challenger exposing (Challenger)
+import Lib.Encrypt exposing (encrypt)
 import Random
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
@@ -31,8 +33,7 @@ type alias Model =
     , timer : Timer
     , status : GameStatus
     , gamer : String
-    , challenger : Maybe String
-    , challengerScore : Maybe Int
+    , challenger : Maybe Challenger
     }
 
 
@@ -106,12 +107,7 @@ type TongueStatus
     | Retracted
 
 
-type alias ChallengerParam =
-    { challenger : String
-    }
-
-
-game : Maybe ChallengerParam -> GameElement Model Msg
+game : { challenger : Maybe Challenger } -> GameElement Model Msg
 game params =
     { init = init params
     , view = view
@@ -120,18 +116,8 @@ game params =
     }
 
 
-init : Maybe ChallengerParam -> ( Model, Cmd Msg )
+init : { challenger : Maybe Challenger } -> ( Model, Cmd Msg )
 init params =
-    let
-        ( challengerName, challengerScore ) =
-            case params of
-                Just { challenger } ->
-                    ( Just challenger, Nothing )
-
-                -- FIXME: decode challenger score
-                Nothing ->
-                    ( Nothing, Nothing )
-    in
     ( { frogy = initFrogy
       , flies = initFlies
       , board = { width = 800, height = 450, left = 55, top = 65 }
@@ -146,8 +132,7 @@ init params =
             }
       , status = Initializing
       , gamer = ""
-      , challenger = challengerName
-      , challengerScore = challengerScore
+      , challenger = params.challenger
       }
     , Cmd.none
     )
@@ -316,6 +301,7 @@ viewInializingModal { status, timer } =
                 [ class "modal__input"
                 , Attr.placeholder "Nickname"
                 , Html.Events.onInput OnInputNickname
+                , Attr.pattern "[a-zA-Z0-9-_.!?]+"
                 ]
                 []
             , Html.p [ class "click__to__start" ] [ text "Click to start the game." ]
@@ -324,34 +310,41 @@ viewInializingModal { status, timer } =
 
 
 viewModalFinished : Model -> Html.Html Msg
-viewModalFinished { status, score, gamer, challenger, challengerScore } =
+viewModalFinished model =
     let
-        genLink g s =
-            "https://the-wizard-frogy.netlify.com/" ++ g ++ "/" ++ String.fromInt s
+        ( shift, _ ) =
+            Random.step (Random.int 0 1000000) model.seed
+
+        encrypted =
+            encrypt shift (model.gamer ++ "," ++ String.fromInt model.score)
+                |> Maybe.withDefault ""
+
+        link =
+            "https://the-wizard-frogy.netlify.com/game?shift=" ++ String.fromInt shift ++ "&challenger=" ++ encrypted
 
         ( winnerMsg, classModal ) =
-            case challenger of
-                Just challenger_ ->
-                    if score > Maybe.withDefault 0 challengerScore then
-                        ( "You won against " ++ challenger_ ++ "!", "modal__won" )
+            case model.challenger of
+                Just { name, score } ->
+                    if model.score > score then
+                        ( "You won against " ++ name ++ "!", "modal__won" )
 
-                    else if score < Maybe.withDefault 0 challengerScore then
-                        ( "You lost against " ++ challenger_ ++ ".", "modal__lost" )
+                    else if model.score < score then
+                        ( "You lost against " ++ name ++ ".", "modal__lost" )
 
                     else
-                        ( "You tied with " ++ challenger_ ++ ".", "modal__tied" )
+                        ( "You tied with " ++ name ++ ".", "modal__tied" )
 
                 Nothing ->
                     ( "", "" )
     in
     Html.div
-        [ class ("_modal" ++ " " ++ modalStatus Finished status) ]
+        [ class ("_modal" ++ " " ++ modalStatus Finished model.status) ]
         [ Html.div
             [ class "modal__content" ]
             [ Html.h1 [] [ text "It's over!" ]
             , Html.p [ class (classModal ++ " " ++ "game_result") ] [ text winnerMsg ]
             , Html.p [] [ text "Challenge your friends using this link:" ]
-            , Html.p [ class "share__link" ] [ text <| genLink gamer score ]
+            , Html.p [ class "share__link" ] [ text <| link ]
             ]
         ]
 
@@ -390,7 +383,7 @@ viewFlies flies =
 
 
 viewFly : Fly -> Svg.Svg Msg
-viewFly { x, y, status } =
+viewFly { x, y } =
     Svg.text_
         [ Svg.Attributes.x <| String.fromInt x
         , Svg.Attributes.y <| String.fromInt y
@@ -408,37 +401,42 @@ viewFrogy frogy =
     let
         tongue =
             frogy.tongue
+
+        viewTongue =
+            [ circle
+                [ cx <| String.fromInt tongue.x
+                , cy <| String.fromInt tongue.y
+                , r "15"
+                , fill "red"
+                , stroke "red"
+                ]
+                []
+            , line
+                [ x1 <| String.fromInt frogy.x
+                , y1 <| String.fromInt frogy.y
+                , x2 <| String.fromInt tongue.x
+                , y2 <| String.fromInt tongue.y
+                , stroke "red"
+                , strokeWidth "20"
+                ]
+                []
+            ]
     in
     g
         [ fill "white"
         , stroke "black"
         , strokeWidth "5"
         ]
-        [ circle
-            [ cx <| String.fromInt tongue.x
-            , cy <| String.fromInt tongue.y
-            , r "15"
-            , fill "red"
-            , stroke "red"
-            ]
-            []
-        , line
-            [ x1 <| String.fromInt frogy.x
-            , y1 <| String.fromInt frogy.y
-            , x2 <| String.fromInt tongue.x
-            , y2 <| String.fromInt tongue.y
-            , stroke "red"
-            , strokeWidth "20"
-            ]
-            []
-        , circle
-            [ cx <| String.fromInt frogy.x
-            , cy <| String.fromInt frogy.y
-            , r "80"
-            , fill "green"
-            ]
-            []
-        ]
+        (viewTongue
+            ++ [ circle
+                    [ cx <| String.fromInt frogy.x
+                    , cy <| String.fromInt frogy.y
+                    , r "80"
+                    , fill "green"
+                    ]
+                    []
+               ]
+        )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -454,7 +452,7 @@ update msg model =
             else
                 ( { model | frogy = updateTongueStatus model.frogy (Moving x y) }, Cmd.none )
 
-        OnAnimationFrame timeDelta ->
+        OnAnimationFrame _ ->
             let
                 ( updatedFlies, score ) =
                     model.flies
@@ -541,13 +539,8 @@ update msg model =
 
 reset : Model -> Model
 reset _ =
-    let
-        params =
-            Nothing
-
-        -- FIXME: get params from url
-    in
-    init params |> Tuple.first
+    -- FIXME: get params from url
+    init { challenger = Nothing } |> Tuple.first
 
 
 caughtFlies : Frogy -> List Fly -> ( List Fly, Int )
