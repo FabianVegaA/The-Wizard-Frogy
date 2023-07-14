@@ -548,9 +548,8 @@ update msg model =
 
 
 reset : Model -> Model
-reset _ =
-    -- FIXME: get params from url
-    init { challenger = Nothing, url = Nothing } |> Tuple.first
+reset model =
+    init { challenger = model.challenger, url = model.url } |> Tuple.first
 
 
 caughtFlies : Frogy -> List Fly -> ( List Fly, Int )
