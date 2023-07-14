@@ -11,6 +11,7 @@ import Random
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import Time
+import Url
 import View exposing (View)
 
 
@@ -34,6 +35,7 @@ type alias Model =
     , status : GameStatus
     , gamer : String
     , challenger : Maybe Challenger
+    , url : Maybe Url.Url
     }
 
 
@@ -107,7 +109,7 @@ type TongueStatus
     | Retracted
 
 
-game : { challenger : Maybe Challenger } -> GameElement Model Msg
+game : { challenger : Maybe Challenger, url : Maybe Url.Url } -> GameElement Model Msg
 game params =
     { init = init params
     , view = view
@@ -116,7 +118,7 @@ game params =
     }
 
 
-init : { challenger : Maybe Challenger } -> ( Model, Cmd Msg )
+init : { challenger : Maybe Challenger, url : Maybe Url.Url } -> ( Model, Cmd Msg )
 init params =
     ( { frogy = initFrogy
       , flies = initFlies
@@ -133,6 +135,7 @@ init params =
       , status = Initializing
       , gamer = ""
       , challenger = params.challenger
+      , url = params.url
       }
     , Cmd.none
     )
@@ -320,7 +323,14 @@ viewModalFinished model =
                 |> Maybe.withDefault ""
 
         link =
-            "https://the-wizard-frogy.netlify.com/game?shift=" ++ String.fromInt shift ++ "&challenger=" ++ encrypted
+            let
+                query =
+                    "shift=" ++ String.fromInt shift ++ "&challenger=" ++ encrypted
+            in
+            model.url
+                |> Maybe.map (\url -> { url | query = Just query })
+                |> Maybe.map Url.toString
+                |> Maybe.withDefault ""
 
         ( winnerMsg, classModal ) =
             case model.challenger of
@@ -540,7 +550,7 @@ update msg model =
 reset : Model -> Model
 reset _ =
     -- FIXME: get params from url
-    init { challenger = Nothing } |> Tuple.first
+    init { challenger = Nothing, url = Nothing } |> Tuple.first
 
 
 caughtFlies : Frogy -> List Fly -> ( List Fly, Int )
