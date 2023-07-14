@@ -30,18 +30,19 @@ splitAt n xs =
     ( List.take n xs, List.drop n xs )
 
 
-index : a -> List a -> Int
+index : a -> List a -> Maybe Int
 index x xs =
     case xs of
         [] ->
-            -1
+            Nothing
 
         y :: ys ->
             if x == y then
-                0
+                Just 0
 
             else
-                1 + index x ys
+                index x ys
+                    |> Maybe.map ((+) 1)
 
 
 at : Int -> List a -> Maybe a
