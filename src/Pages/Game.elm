@@ -19,7 +19,7 @@ type alias Msg =
 
 
 page : Shared.Model -> Route () -> Page Model Msg
-page _ { query } =
+page _ { query, url } =
     let
         challenger =
             Dict.get "challenger" query
@@ -28,7 +28,7 @@ page _ { query } =
                 |> Maybe.andThen parseChallenger
 
         { init, update, subscriptions, view } =
-            game { challenger = challenger }
+            game { challenger = challenger, url = Just url }
 
         toEffect ( m, cmd ) =
             ( m, sendCmd cmd )
