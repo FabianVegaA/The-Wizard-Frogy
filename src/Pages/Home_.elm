@@ -40,7 +40,7 @@ update msg model =
     case msg of
         Clicked ->
             ( model
-            , Effect.loadExternalUrl "/frogy"
+            , Effect.loadExternalUrl "/game"
             )
 
 
