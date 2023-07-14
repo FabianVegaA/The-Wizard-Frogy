@@ -1,15 +1,13 @@
+:root {
+  --font-color: #b7dade;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background-color: #2f2f2f;
-    color: #121212;
-    font-family: "Roboto";
-
+    color: var(--font-color) !important;
+    font-family: "Roboto" !important;
     height: 100%;
-  }
-
-  .game {
-    background-color: #121212;
-    color: #eee;
   }
 }
 
@@ -21,6 +19,7 @@
 
 .game__board {
   margin: 5px auto 0 50px;
+  border: #b7dade 1px solid;
 }
 
 .game__score {
@@ -31,30 +30,36 @@
   justify-content: center;
   align-items: center;
 
+  overflow: hidden;
+
   font-size: 2rem;
   font-weight: bold;
 }
 
+.game__score > pre {
+  overflow: hidden;
+}
+
 .game__controls {
   display: flex;
-  flex-direction: footer__media;
+  flex-direction: row;
   align-self: stretch;
   margin: 1rem 50px 0 50px;
 }
 
-.game__controls > .play {
+.game__controls > .play_button {
   width: 5rem;
   height: 5rem;
   border-radius: 0.5rem;
   border-color: transparent;
-  background: url(assets/play-button.svg) no-repeat center;
+  background: url(../assets/play-button.svg) no-repeat center;
 }
 
-.game__controls > .play:hover {
+.game__controls > .play_button:hover {
   filter: saturate(4);
 }
 
-.game__controls > .play:active {
+.game__controls > .play_button:active {
   filter: saturate(8);
 }
 
@@ -83,7 +88,7 @@
   margin: 1rem 0.5rem 0 0;
 }
 
-.modal {
+._modal {
   position: absolute;
   z-index: 1000;
 
@@ -91,23 +96,23 @@
   justify-content: center;
   align-items: center;
 
-  margin: 65px auto 0 50px;
+  margin: 55px auto 0 50px;
 
   width: 800px;
-  height: 440px;
+  height: 450px;
   background-color: rgba(238, 238, 226, 0.2);
 
-  color: #121212;
+  color: var(--font-color);
   font-weight: bold;
 }
 
-.modal > .modal__content {
+._modal > .modal__content {
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.modal > .modal__content > input {
+._modal > .modal__content > input {
   width: 50%;
   height: 3rem;
   margin-bottom: 1rem;
@@ -119,26 +124,26 @@
   font-size: 1.25rem;
 }
 
-.modal > .modal__content > h1 {
+._modal > .modal__content > h1 {
   font-size: 3rem;
   margin-bottom: 1rem;
 }
 
-.modal > .modal__content > p {
-  color: #3b3b3b;
+._modal > .modal__content > p {
+  color: var(--font-color);
 }
 
-.modal > .modal__content > .modal__input {
-  border: 1px solid #ebb913;
-  border-radius: 0.5rem;
+._modal > .modal__content > .modal__input {
+  /* border: 1px solid #ebb913; */
+  border-radius: 0.1rem;
   padding: 0.5rem;
   margin-bottom: 1rem;
   font-size: 1.5rem;
   font-weight: bold;
-  color: #2f2f2f;
+  color: rgb(35, 37, 50);
 }
 
-.modal > .modal__content > .modal__input:hover {
+._modal > .modal__content > .modal__input:hover {
   filter: saturate(4) brightness(1.2) contrast(1.2);
 }
 
@@ -147,10 +152,10 @@
   outline: 1px solid #ebb913;
 }
 
-.modal > .modal__content > .click__to__start {
+._modal > .modal__content > .click__to__start {
   font-size: 1.5rem;
   margin-top: 1rem;
-  color: #2f2f2f;
+  color: var(--font-color);
 }
 
 .modal__active {
@@ -203,14 +208,19 @@
   background-color: rgba(255, 255, 0, 0.2);
 }
 
-.footer {
-  background: #000;
+._footer {
+  background: #1d1c1c;
   padding: 30px 0px;
   text-align: center;
   width: 900px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-.footer .footer__media {
+._footer .footer__media {
   width: 100%;
   margin: 1% 0%;
   padding: 0.6% 0%;
@@ -218,51 +228,69 @@
   font-size: 0.8em;
 }
 
-.footer .footer__media a {
+._footer .footer__media a {
   text-decoration: none;
   color: gray;
   transition: 0.5s;
 }
 
-.footer .footer__media a:hover {
+._footer .footer__media a:hover {
   color: #fff;
 }
 
-.footer .footer__media ul {
+._footer .footer__media ul {
   width: 100%;
 }
 
-.footer .footer__media ul li {
+._footer .footer__media ul li {
   display: inline-block;
   margin: 0px 30px;
 }
 
-.footer .footer__media a i {
+._footer .footer__media a i {
   font-size: 2em;
   margin: 0% 1%;
 }
 
-.footer .footer__open__source {
+._footer .footer__open__source {
   color: #fff;
 }
 
-.footer .footer__open__source a {
+._footer .footer__open__source a {
   color: gray;
   text-decoration: none;
   transition: 0.5s;
 }
 
 @media (max-width: 720px) {
-  .footer {
+  ._footer {
     text-align: left;
     padding: 5%;
   }
-  .footer .footer__media ul li {
+  ._footer .footer__media ul li {
     display: block;
     margin: 10px 0px;
     text-align: left;
   }
-  .footer .footer__media a i {
+  ._footer .footer__media a i {
     margin: 0% 3%;
+  }
+}
+
+svg {
+  #fly {
+    animation: scale 1s infinite;
+  }
+}
+
+@keyframes scale {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.005);
+  }
+  100% {
+    transform: scale(1);
   }
 }
