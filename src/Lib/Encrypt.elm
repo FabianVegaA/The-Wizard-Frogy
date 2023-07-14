@@ -29,8 +29,8 @@ shiftChar shift char =
     in
     if List.member charCode admissibleCodeChars then
         index charCode admissibleCodeChars
-            |> (\i -> modBy (List.length admissibleCodeChars) (i + shift))
-            |> (\i -> at i admissibleCodeChars)
+            |> Maybe.map (\i -> modBy (List.length admissibleCodeChars) (i + shift))
+            |> Maybe.andThen (\i -> at i admissibleCodeChars)
             |> Maybe.map Char.fromCode
 
     else
