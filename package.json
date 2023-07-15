@@ -1,6 +1,17 @@
 {
+  "name": "the-wizard-frogy",
+  "description": "A game about a wizard and a frog",
+  "scripts": {
+    "build": "npx elm-land build",
+    "dev": "npx elm-land server",
+    "test": "npx elm-test"
+  },
   "devDependencies": {
     "elm": "^0.19.1-5",
-    "elm-live": "^4.0.0-rc.1"
-  }
+    "elm-test": "^0.19.1-revision12"
+  },
+  "dependencies": {
+    "elm-land": "^0.19.1"
+  },
+  "license": "BSD-3-Clause"
 }
