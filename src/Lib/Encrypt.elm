@@ -1,4 +1,4 @@
-module Lib.Encrypt exposing (decrypt, encrypt)
+module Lib.Encrypt exposing (decrypt, encrypt, shiftChar)
 
 import Lib.List exposing (at, index)
 
