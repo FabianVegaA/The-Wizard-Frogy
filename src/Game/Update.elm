@@ -27,7 +27,7 @@ update msg model =
 
                 ( newFlies, s1 ) =
                     updatedFlies
-                        |> instanceNewFlies model
+                        |> spawnFlies model
                         |> (\( flies, seed ) -> updateFlies { model | seed = seed } flies)
 
                 ( hasSpawn, s2 ) =
@@ -65,7 +65,12 @@ update msg model =
 
                 newTimer =
                     { timer
-                        | elapsed = timer.elapsed + 1
+                        | elapsed =
+                            if timer.elapsed >= timer.stop then
+                                timer.stop
+
+                            else
+                                timer.elapsed + 1
                     }
 
                 newStatus =
@@ -140,8 +145,8 @@ caughtFlies frogy flies =
     ( aliveFlies, List.length deadFlies )
 
 
-instanceNewFlies : Model -> List Fly -> ( List Fly, Random.Seed )
-instanceNewFlies model flies =
+spawnFlies : Model -> List Fly -> ( List Fly, Random.Seed )
+spawnFlies model flies =
     case flies of
         [] ->
             Random.step (fliesGenerator 3 model) model.seed
@@ -159,7 +164,7 @@ fliesGenerator n model =
 flyGenerator : Model -> Random.Generator Fly
 flyGenerator { board, maxSpeed } =
     Random.map4
-        (Fly 0)
+        (Fly -50)
         (Random.int 0 board.height)
         (Random.int -maxSpeed maxSpeed)
         (Random.int -maxSpeed maxSpeed)
