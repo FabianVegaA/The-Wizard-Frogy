@@ -2,13 +2,11 @@
   --font-color: #b7dade;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #2f2f2f;
-    color: var(--font-color) !important;
-    font-family: "Roboto" !important;
-    height: 100%;
-  }
+body {
+  background-color: #2f2f2f;
+  color: var(--font-color) !important;
+  font-family: "Roboto" !important;
+  height: 100%;
 }
 
 .game {
@@ -52,7 +50,18 @@
   height: 5rem;
   border-radius: 0.5rem;
   border-color: transparent;
+}
+
+.game__controls > .play_button__icon {
   background: url(../assets/play-button.svg) no-repeat center;
+}
+
+.game__controls > .pause_button__icon {
+  background: url(../assets/pause-button.svg) no-repeat center;
+}
+
+.game__controls > .reset_button__icon {
+  background: url(../assets/reset-button.svg) no-repeat center;
 }
 
 .game__controls > .play_button:hover {

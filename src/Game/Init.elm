@@ -10,16 +10,12 @@ init : { challenger : Maybe Challenger, url : Maybe Url.Url } -> ( Model, Cmd Ms
 init params =
     ( { frogy = initFrogy
       , flies = initFlies
-      , board = { width = 800, height = 450, left = 55, top = 65 }
+      , board = initBoard
       , seed = Random.initialSeed 42
       , maxSpeed = 7
       , maxPopulation = 10
       , score = 0
-      , timer =
-            { start = 0
-            , elapsed = 0
-            , stop = 60
-            }
+      , timer = initTimer
       , status = Initializing
       , gamer = ""
       , challenger = params.challenger
@@ -27,6 +23,23 @@ init params =
       }
     , Cmd.none
     )
+
+
+initTimer : Timer
+initTimer =
+    { start = 0
+    , elapsed = 0
+    , stop = 60
+    }
+
+
+initBoard : Board
+initBoard =
+    { width = 800
+    , height = 450
+    , left = 55
+    , top = 65
+    }
 
 
 initFrogy : Frogy
@@ -49,7 +62,7 @@ initFlies =
         initFly x y sx sy =
             Fly x y sx sy Free
     in
-    [ initFly 0 100 10 1
-    , initFly 0 200 10 2
-    , initFly 0 300 13 -5
+    [ initFly 0 100 10 1 30
+    , initFly 0 200 10 2 60
+    , initFly 0 300 13 -5 90
     ]

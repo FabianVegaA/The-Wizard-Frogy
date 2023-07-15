@@ -27,7 +27,7 @@ update msg model =
 
                 ( newFlies, s1 ) =
                     updatedFlies
-                        |> instanceNewFlies model
+                        |> spawnFlies model
                         |> (\( flies, seed ) -> updateFlies { model | seed = seed } flies)
 
                 ( hasSpawn, s2 ) =
@@ -65,7 +65,12 @@ update msg model =
 
                 newTimer =
                     { timer
-                        | elapsed = timer.elapsed + 1
+                        | elapsed =
+                            if timer.elapsed >= timer.stop then
+                                timer.stop
+
+                            else
+                                timer.elapsed + 1
                     }
 
                 newStatus =
@@ -111,14 +116,17 @@ reset model =
 caughtFlies : Frogy -> List Fly -> ( List Fly, Int )
 caughtFlies frogy flies =
     let
+        flyScope =
+            30
+
         isCaught : Fly -> Frogy -> Bool
         isCaught { x, y, status } { tongue } =
             List.all identity
                 [ status == Free
-                , x > tongue.x - 15
-                , x < tongue.x + 15
-                , y > tongue.y - 15
-                , y < tongue.y + 15
+                , x > tongue.x - flyScope
+                , x < tongue.x + flyScope
+                , y > tongue.y - flyScope
+                , y < tongue.y + flyScope
                 ]
 
         caught fly =
@@ -140,8 +148,8 @@ caughtFlies frogy flies =
     ( aliveFlies, List.length deadFlies )
 
 
-instanceNewFlies : Model -> List Fly -> ( List Fly, Random.Seed )
-instanceNewFlies model flies =
+spawnFlies : Model -> List Fly -> ( List Fly, Random.Seed )
+spawnFlies model flies =
     case flies of
         [] ->
             Random.step (fliesGenerator 3 model) model.seed
@@ -158,12 +166,13 @@ fliesGenerator n model =
 
 flyGenerator : Model -> Random.Generator Fly
 flyGenerator { board, maxSpeed } =
-    Random.map4
-        (Fly 0)
+    Random.map5
+        (Fly -50)
         (Random.int 0 board.height)
         (Random.int -maxSpeed maxSpeed)
         (Random.int -maxSpeed maxSpeed)
         (Random.constant Free)
+        (Random.float 0 360)
 
 
 isOutside : Int -> Board -> ( Int, Int ) -> Bool
@@ -202,10 +211,10 @@ generatorSpeedFly { maxSpeed } oldSpeed =
 
 
 motionFly : Model -> Fly -> ( Fly, Random.Seed )
-motionFly model { x, y, vertSpeed, horizSpeed, status } =
+motionFly model { x, y, vertSpeed, horizSpeed, status, angle } =
     case status of
         Caught ->
-            ( Fly model.frogy.x model.frogy.y vertSpeed horizSpeed Free, model.seed )
+            ( Fly model.frogy.x model.frogy.y vertSpeed horizSpeed Free 0, model.seed )
 
         Free ->
             let
@@ -219,7 +228,7 @@ motionFly model { x, y, vertSpeed, horizSpeed, status } =
                     Random.step (generatorSpeedFly model horizSpeed) s1
 
                 inertia s =
-                    s // 10
+                    s // 5
 
                 horizInertia =
                     inertia horizSpeed
@@ -239,18 +248,22 @@ motionFly model { x, y, vertSpeed, horizSpeed, status } =
 
                 vertRepulsion =
                     repultion frogyY y
+
+                angularSpeed =
+                    Random.step (Random.float -5 5) s2 |> Tuple.first
             in
             ( { x = x + newHorizSpeed + horizInertia + horizRepulsion
               , y = y + newVertSpeed + vertInertia + vertRepulsion
               , vertSpeed = newVertSpeed
               , horizSpeed = newHorizSpeed
               , status = Free
+              , angle = angle + angularSpeed
               }
             , s2
             )
 
         _ ->
-            ( Fly x y vertSpeed horizSpeed status, model.seed )
+            ( Fly x y vertSpeed horizSpeed status angle, model.seed )
 
 
 updateTongueStatus : Frogy -> TongueStatus -> Frogy

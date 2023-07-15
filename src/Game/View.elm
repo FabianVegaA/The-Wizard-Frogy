@@ -6,6 +6,7 @@ import Html.Attributes as Attr
 import Html.Events
 import Lib.Encrypt exposing (encrypt)
 import Random
+import Route.Path exposing (Path(..))
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
 import Url
@@ -17,11 +18,16 @@ view model =
     { title = "The Wizard Frogs"
     , body =
         [ Html.div [ class "game" ]
-            [ viewBackground
+            [ viewBackground model
             , Html.div
                 []
                 [ viewInializingModal model
-                , viewModalFinished model
+                , case model.status of
+                    Finished ->
+                        viewModalFinished model
+
+                    _ ->
+                        Html.div [] []
                 , Html.div [ class "game__score" ] [ Html.pre [] [ text <| "Score: " ++ String.fromInt model.score ] ]
                 , svg
                     [ width <| String.fromInt model.board.width
@@ -43,7 +49,7 @@ view model =
                 , Html.div
                     [ class "game__controls" ]
                     [ Html.button
-                        [ class "play_button"
+                        [ class <| "play_button " ++ useGameStatusClass model.status
                         , Html.Events.onClick (clicker model)
                         ]
                         []
@@ -65,38 +71,49 @@ view model =
     }
 
 
-viewBackground : Html.Html Msg
-viewBackground =
+useGameStatusClass : GameStatus -> String
+useGameStatusClass status =
+    case status of
+        Playing ->
+            "pause_button__icon"
+
+        Finished ->
+            "reset_button__icon"
+
+        _ ->
+            "play_button__icon"
+
+
+viewBackground : Model -> Html.Html Msg
+viewBackground model =
+    let
+        rain =
+            List.repeat 10 (viewRain model)
+    in
     Html.div
         [ class "game__board__background"
         ]
-        [ viewRain
-        , viewRain
-        , viewRain
-        , viewRain
-        , viewRain
-        ]
+        rain
 
 
-viewRain : Html.Html Msg
-viewRain =
+viewRain : Model -> Html.Html Msg
+viewRain model =
+    let
+        waves =
+            Random.step (Random.int 1 5) model.seed
+                |> Tuple.first
+                |> (\n -> List.repeat n (Html.div [] []))
+
+        particles =
+            Random.step (Random.int 3 20) model.seed
+                |> Tuple.first
+                |> (\n -> List.repeat n (Html.div [] []))
+    in
     Html.div [ class "rain" ]
         [ Html.div [ class "drop" ] []
-        , Html.div [ class "waves" ]
-            [ Html.div [] []
-            , Html.div [] []
-            , Html.div [] []
-            ]
+        , Html.div [ class "waves" ] waves
         , Html.div [ class "splash" ] []
-        , Html.div [ class "particles" ]
-            [ Html.div [] []
-            , Html.div [] []
-            , Html.div [] []
-            , Html.div [] []
-            , Html.div [] []
-            , Html.div [] []
-            , Html.div [] []
-            ]
+        , Html.div [ class "particles" ] particles
         ]
 
 
@@ -238,12 +255,12 @@ viewFlies flies =
 
 
 viewFly : Fly -> Svg.Svg Msg
-viewFly { x, y } =
+viewFly { x, y, angle } =
     Svg.text_
         [ Svg.Attributes.x <| String.fromInt x
         , Svg.Attributes.y <| String.fromInt y
-        , Svg.Attributes.fontSize "30"
-        , Svg.Attributes.rotate "30"
+        , Svg.Attributes.fontSize "50"
+        , Svg.Attributes.rotate <| String.fromFloat angle
         , Svg.Attributes.fill "#b7dade"
         , Svg.Attributes.filter "url(#blur)"
         , id "fly"
