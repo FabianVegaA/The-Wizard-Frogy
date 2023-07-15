@@ -52,7 +52,18 @@
   height: 5rem;
   border-radius: 0.5rem;
   border-color: transparent;
+}
+
+.game__controls > .play_button__icon {
   background: url(../assets/play-button.svg) no-repeat center;
+}
+
+.game__controls > .pause_button__icon {
+  background: url(../assets/pause-button.svg) no-repeat center;
+}
+
+.game__controls > .reset_button__icon {
+  background: url(../assets/reset-button.svg) no-repeat center;
 }
 
 .game__controls > .play_button:hover {
