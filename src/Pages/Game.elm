@@ -3,6 +3,7 @@ module Pages.Game exposing (Model, Msg, page)
 import Dict
 import Effect exposing (sendCmd)
 import Game exposing (game)
+import Game.Model as Game
 import Lib.Challenger exposing (parseChallenger)
 import Lib.Encrypt exposing (decrypt)
 import Page exposing (Page)
