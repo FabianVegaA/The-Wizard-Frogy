@@ -62,7 +62,7 @@ initFlies =
         initFly x y sx sy =
             Fly x y sx sy Free
     in
-    [ initFly 0 100 10 1
-    , initFly 0 200 10 2
-    , initFly 0 300 13 -5
+    [ initFly 0 100 10 1 30
+    , initFly 0 200 10 2 60
+    , initFly 0 300 13 -5 90
     ]

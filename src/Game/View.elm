@@ -255,12 +255,12 @@ viewFlies flies =
 
 
 viewFly : Fly -> Svg.Svg Msg
-viewFly { x, y } =
+viewFly { x, y, angle } =
     Svg.text_
         [ Svg.Attributes.x <| String.fromInt x
         , Svg.Attributes.y <| String.fromInt y
         , Svg.Attributes.fontSize "50"
-        , Svg.Attributes.rotate "30"
+        , Svg.Attributes.rotate <| String.fromFloat angle
         , Svg.Attributes.fill "#b7dade"
         , Svg.Attributes.filter "url(#blur)"
         , id "fly"

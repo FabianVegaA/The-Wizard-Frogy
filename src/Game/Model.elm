@@ -80,6 +80,7 @@ type alias Fly =
     , vertSpeed : Int
     , horizSpeed : Int
     , status : FlyStatus
+    , angle : Float
     }
 
 
