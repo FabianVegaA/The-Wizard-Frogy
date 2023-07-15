@@ -2,13 +2,11 @@
   --font-color: #b7dade;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #2f2f2f;
-    color: var(--font-color) !important;
-    font-family: "Roboto" !important;
-    height: 100%;
-  }
+body {
+  background-color: #2f2f2f;
+  color: var(--font-color) !important;
+  font-family: "Roboto" !important;
+  height: 100%;
 }
 
 .game {
