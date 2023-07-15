@@ -1,4 +1,4 @@
-module Lib.Encrypt exposing (decrypt, encrypt, shiftChar)
+module Lib.Encrypt exposing (decrypt, encrypt)
 
 import Lib.List exposing (at, index)
 
@@ -16,7 +16,7 @@ admissibleCodeChars =
             List.range 65 90
 
         simbolChars =
-            List.map Char.toCode [ '-', '_', '.', '!', '?', ' ', ',' ]
+            List.map Char.toCode [ '-', '_', '.', '@', ',' ]
     in
     nums ++ hightChars ++ lowChars ++ simbolChars
 

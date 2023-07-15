@@ -149,7 +149,7 @@ viewInializingModal { status, timer } =
                 [ class "modal__input"
                 , Attr.placeholder "Nickname"
                 , Html.Events.onInput OnInputNickname
-                , Attr.pattern "[a-zA-Z0-9-_.!?]+"
+                , Attr.pattern "[a-zA-Z0-9-_.@]{1,20}"
                 ]
                 []
             , Html.p [ class "click__to__start" ] [ text "Click to start the game." ]
