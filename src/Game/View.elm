@@ -274,7 +274,7 @@ viewFrogy frogy =
         tongue =
             frogy.tongue
 
-        viewTongue =
+        tongue_ =
             [ circle
                 [ cx <| String.fromInt tongue.x
                 , cy <| String.fromInt tongue.y
@@ -293,22 +293,82 @@ viewFrogy frogy =
                 ]
                 []
             ]
+
+        frogy_ =
+            [ ellipse
+                [ cx <| String.fromInt <| frogy.x - 40
+                , cy <| String.fromInt <| frogy.y + 40
+                , rx "60"
+                , ry "40"
+                , rotate "90"
+                , fill "#005823"
+                ]
+                []
+            , ellipse
+                [ cx <| String.fromInt <| frogy.x + 40
+                , cy <| String.fromInt <| frogy.y - 40
+                , rx "40"
+                , ry "60"
+                , rotate "90"
+                , fill "#005823"
+                ]
+                []
+            , circle
+                [ cx <| String.fromInt frogy.x
+                , cy <| String.fromInt frogy.y
+                , r "80"
+                , fill "#005823"
+                ]
+                []
+            , circle
+                [ cx <| String.fromInt <| frogy.x - 90
+                , cy <| String.fromInt <| frogy.y - 30
+                , r "30"
+                , fill "#005823"
+                ]
+                []
+            , circle
+                [ cx <| String.fromInt <| frogy.x - 40
+                , cy <| String.fromInt <| frogy.y - 80
+                , r "30"
+                , fill "#005823"
+                ]
+                []
+            , ellipse
+                [ cx <| String.fromInt <| frogy.x - 20
+                , cy <| String.fromInt <| frogy.y + 30
+                , rx "20"
+                , ry "15"
+                , rotate "90"
+                , fill "#00b047"
+                ]
+                []
+            , ellipse
+                [ cx <| String.fromInt <| frogy.x + 10
+                , cy <| String.fromInt <| frogy.y - 30
+                , rx "15"
+                , ry "20"
+                , rotate "90"
+                , fill "#00b047"
+                ]
+                []
+            , ellipse
+                [ cx <| String.fromInt <| frogy.x + 40
+                , cy <| String.fromInt <| frogy.y + 20
+                , rx "15"
+                , ry "17"
+                , rotate "90"
+                , fill "#00b047"
+                ]
+                []
+            ]
     in
     g
         [ fill "white"
         , stroke "black"
         , strokeWidth "5"
         ]
-        (viewTongue
-            ++ [ circle
-                    [ cx <| String.fromInt frogy.x
-                    , cy <| String.fromInt frogy.y
-                    , r "80"
-                    , fill "green"
-                    ]
-                    []
-               ]
-        )
+        (tongue_ ++ frogy_)
 
 
 clicker : Model -> Msg
