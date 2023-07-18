@@ -165,13 +165,25 @@ fliesGenerator n model =
 
 
 flyGenerator : Model -> Random.Generator Fly
-flyGenerator { board, maxSpeed } =
-    Random.map5
-        (Fly -50)
-        (Random.int 0 board.height)
+flyGenerator { board, maxSpeed, seed } =
+    let
+        genXY =
+            Random.uniform ( Random.constant -50, Random.int 0 board.height )
+                [ ( Random.int 0 board.width, Random.constant -50 )
+                , ( Random.int 0 board.width, Random.constant (board.height + 50) )
+                ]
+
+        ( genX, genY ) =
+            Random.step genXY seed |> Tuple.first
+
+        freeFly x y vx vy a =
+            Fly x y vx vy Free a
+    in
+    Random.map5 freeFly
+        genX
+        genY
         (Random.int -maxSpeed maxSpeed)
         (Random.int -maxSpeed maxSpeed)
-        (Random.constant Free)
         (Random.float 0 360)
 
 
