@@ -153,24 +153,38 @@ viewFooter _ =
 
 
 viewInializingModal : Model -> Html.Html Msg
-viewInializingModal { status, timer } =
+viewInializingModal { status, timer, challenger } =
+    let
+        challengerMsg =
+            case challenger of
+                Just challenger_ ->
+                    List.singleton <| Html.p [] [ text <| challenger_.name ++ " is challenging you to beat his score of " ++ String.fromInt challenger_.score ++ "." ]
+
+                Nothing ->
+                    []
+    in
     Html.div
         [ class ("_modal" ++ " " ++ modalStatus Initializing status) ]
         [ Html.div
             [ class "modal__content" ]
-            [ Html.h1 [] [ text "The Wizard Frogs" ]
-            , Html.p [] [ text "You are a wizard frog. You have a magic tongue. You can catch flies with it." ]
-            , Html.p [] [ text ("Catch as many stars as you can in " ++ String.fromFloat timer.stop ++ " seconds.") ]
-            , Html.p [] [ text "Add your Nickname to the Hall of Fame." ]
-            , Html.input
-                [ class "modal__input"
-                , Attr.placeholder "Nickname"
-                , Html.Events.onInput OnInputNickname
-                , Attr.pattern "[a-zA-Z0-9-_.@]{1,20}"
-                ]
-                []
-            , Html.p [ class "click__to__start" ] [ text "Click to start the game." ]
-            ]
+            ([ Html.h1 [] [ text "The Wizard Frogs" ]
+             , Html.p [] [ text "You are a wizard frog. You have a magic tongue. You can catch stars with it." ]
+             , Html.p [] [ text ("Catch as many stars as you can in " ++ String.fromFloat timer.stop ++ " seconds.") ]
+             , Html.br [] []
+             ]
+                ++ challengerMsg
+                ++ [ Html.p [] [ text "Add your Nickname to the Hall of Fame." ]
+                   , Html.input
+                        [ class "modal__input"
+                        , Attr.placeholder "Nickname"
+                        , Html.Events.onInput OnInputNickname
+                        , Attr.required True
+                        , Attr.pattern "^[a-zA-Z0-9\\-_\\.@]{1,20}$"
+                        ]
+                        []
+                   , Html.p [ class "click__to__start" ] [ text "Click to start the game." ]
+                   ]
+            )
         ]
 
 
