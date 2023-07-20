@@ -25,6 +25,10 @@
         {
           "property": "og:description",
           "content": "The Wizard Frogy is a game where you have to help Frogy to catch the flies."
+        },
+        {
+          "property": "og:image",
+          "content": "https://wizard-frogy.netlify.app/assets/images/og-image.jpg"
         }
       ],
       "link": [
