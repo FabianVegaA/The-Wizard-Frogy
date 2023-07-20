@@ -7,10 +7,9 @@
     "env": [],
     "html": {
       "attributes": {
-        "html": { "lang": "en" },
-        "head": {}
+        "html": { "lang": "en" }
       },
-      "title": "Elm Land",
+      "title": "The Wizard Frogy",
       "meta": [
         { "charset": "UTF-8" },
         { "http-equiv": "X-UA-Compatible", "content": "IE=edge" },
@@ -24,14 +23,19 @@
         },
         {
           "property": "og:description",
-          "content": "The Wizard Frogy is a game where you have to help Frogy to catch the flies."
+          "content": "The Wizard Frogy is a game where you have to help Frogy to catch the stars."
         },
         {
+          "name": "game:image",
           "property": "og:image",
           "content": "https://the-wizard-frogy.netlify.app/assets/images/og-image.jpg"
         }
       ],
       "link": [
+        {
+          "property": "image",
+          "href": "https://the-wizard-frogy.netlify.app/assets/images/og-image.jpg"
+        },
         { "rel": "stylesheet", "href": "css/styles.css" },
         { "rel": "stylesheet", "href": "css/effects.css" },
         {
