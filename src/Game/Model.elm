@@ -7,8 +7,8 @@ module Game.Model exposing
     , GameStatus(..)
     , Model
     , Msg(..)
-    , TongueStatus(..)
     , Timer
+    , TongueStatus(..)
     )
 
 import Lib.Challenger exposing (Challenger)

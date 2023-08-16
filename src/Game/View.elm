@@ -157,8 +157,13 @@ viewInializingModal { status, timer, challenger } =
     let
         challengerMsg =
             case challenger of
-                Just challenger_ ->
-                    List.singleton <| Html.p [] [ text <| challenger_.name ++ " is challenging you to beat his score of " ++ String.fromInt challenger_.score ++ "stars." ]
+                Just c ->
+                    [ Html.p []
+                        [ Html.b [ class "challenger__property" ] [ text c.name ]
+                        , text " is challenging you to beat his score of "
+                        , Html.b [ class "challenger__property" ] [ text <| String.fromInt c.score ++ " ★" ]
+                        ]
+                    ]
 
                 Nothing ->
                     []
