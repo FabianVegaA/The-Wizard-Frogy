@@ -1,8 +1,8 @@
 module Game exposing (game)
 
 import Game.Init as Init
-import Game.Subcriptions as Subscriptions
 import Game.Model exposing (..)
+import Game.Subcriptions as Subscriptions
 import Game.Update as Update
 import Game.View as View
 import Lib.Challenger exposing (Challenger)

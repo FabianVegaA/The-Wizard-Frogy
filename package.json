@@ -8,7 +8,8 @@
   },
   "devDependencies": {
     "elm": "^0.19.1-5",
-    "elm-test": "^0.19.1-revision12"
+    "elm-test": "^0.19.1-revision12",
+    "elm-format": "^0.8.7"
   },
   "dependencies": {
     "elm-land": "^0.19.1"

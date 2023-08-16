@@ -138,6 +138,10 @@ body {
   margin-bottom: 1rem;
 }
 
+._modal > .modal__content > p > .challenger__property {
+  font-size: 1.5rem;
+}
+
 ._modal > .modal__content > p {
   color: var(--font-color);
 }
